@@ -1,27 +1,60 @@
 import tkinter as tk
+from tkinter import messagebox
+import random
+from math import floor
+
+import pyperclip
+
 from password_manager import PasswordManager
 from password import Password
 
 FONT_NAME = "Arial"
 FONT_SIZE = 14
 
-global pm
-pm = PasswordManager('mypass.db','passwords')
-
 #-------------------- PASSWORD GENERATOR --------------------#
 
 
-def generate_password(self, length, uppercase=True, lowercase=True, numbers=True, symbols=True):
-    pass
+def generate_password(length=16, uppercase=True, lowercase=True, numbers=True, symbols=True):
+    letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
+    numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+    symbols = ['!', '#', '$', '%', '&', '(', ')', '*', '+']
+    
+    # arbitrarily decide to restrict to mostly characters
+    nLettersFloor = floor(length * .66666)
+    
+    def get_n_chars(charset, length):
+        nr_char = random.randint(1,length)
+        if 'a' in charset:
+            nr_char = max(nr_char, nLettersFloor)
+        remaining_length = length - nr_char
+        return (nr_char, remaining_length)
+    
+    nLetters, remaining_length = get_n_chars(letters, length) 
+    nNumbers, nSymbols = get_n_chars(numbers, remaining_length) 
+
+    password_list = [ random.choice(charset) for charset, n in zip([letters, numbers, symbols], [nLetters, nNumbers, nSymbols]) for _ in range(n) ]
+    random.shuffle(password_list)
+    password = "".join(password_list)
+
+    password_entry.insert(0,password)
+    pyperclip.copy(password)
 
 #-------------------- SAVE PASSWORD --------------------#
+
+global pm
+pm = PasswordManager('mypass.db','passwords')
 
 def get_values():
    website = website_entry.get()
    name = name_entry.get()
    username = username_entry.get()
    password = password_entry.get()
-   notes = notes_entry.get("1.0", 'end-1c')
+   notes = notes_entry.get('1.0', 'end-1c')
+
+   if len(name) == 0 or username == 0 or password == 0:
+        messagebox.showwarning(title='Empty fields', message='name, username, and password must be filled') 
+        return 
+
    params =  {
        'website':website,
        'name':name,
@@ -33,7 +66,18 @@ def get_values():
 
 def save():
     password_object = get_values()
-    pm.add_password(password_object)
+    if password_object:
+        is_ok = messagebox.askokcancel(title="Review %s information"%password_object.website, message='Do you want to add this username/password?')
+        if is_ok:
+            pm.add_password(password_object)
+            clear_entries()
+
+def clear_entries():
+   website_entry.delete(0, 'end')
+   name_entry.delete(0, 'end')
+   username_entry.delete(0, 'end')
+   password_entry.delete(0, 'end')
+   notes_entry.delete('1.0', 'end')
 
 
 #-------------------- UI SETUP --------------------#
@@ -80,7 +124,7 @@ password_label.grid(row=4, column=0)
 password_entry = tk.Entry(width=21, fg="black", bg="white", highlightbackground="lightblue")
 password_entry.grid(row=4, column=1)
 
-generate_password_button = tk.Button(text="Generate Password", fg="black", highlightbackground="white", command=save)
+generate_password_button = tk.Button(text="Generate Password", fg="black", highlightbackground="white", command=generate_password)
 generate_password_button.grid(row=4, column=2)
 
 # notes
@@ -88,7 +132,7 @@ notes_label = tk.Label(text="Notes:", fg="black", bg="white", highlightbackgroun
 notes_label.grid(row=5, column=0)
 
 notes_entry = tk.Text(width=38, height=5, fg="black", bg="white", highlightbackground="lightblue")
-notes_entry.grid(row=5, column=1, rowspan=2)
+notes_entry.grid(row=5, column=1, rowspan=2, columnspan=2)
 
 #add button
 add_button = tk.Button(text="Add", fg="black", highlightbackground="white", width=36, command=save)

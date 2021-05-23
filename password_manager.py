@@ -40,7 +40,6 @@ class PasswordManager:
         
         sql = '''insert into {0}(website, name, username, password, notes, created_ts)
         values('{1}', '{2}', '{3}', '{4}', '{5}', strftime('%s','now'));'''.format(self.table,website,name,username,password,notes)
-        print(sql)
         self.execute_query(sql)
     
     def close(self):
