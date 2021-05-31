@@ -41,7 +41,30 @@ class PasswordManager:
         sql = '''insert into {0}(website, name, username, password, notes, created_ts)
         values('{1}', '{2}', '{3}', '{4}', '{5}', strftime('%s','now'));'''.format(self.table,website,name,username,password,notes)
         self.execute_query(sql)
-    
+
+    def search_for_password(self, params):
+        print(params)
+        sql_base = '''
+        select website, name, username, password 
+        from passwords'''
+
+        operator = {True: "where", False: " and"}
+        filters = ["{} {} like '{}'".format(operator[i == 0], name, value)
+                   for i, (name, value) in enumerate(params.items()) if value]
+        filter = "".join(filters)
+        sql = "{} {}".format(sql_base, filter)
+
+        with closing(self.conn.cursor()) as cur:
+            try:
+                cur.execute(sql)
+            except Exception as e:
+                print("Error:", e)
+            else:
+                r = [dict((cur.description[i][0], value) \
+                          for i, value in enumerate(row)) for row in cur.fetchall()]
+        print(r)
+        return r
+
     def close(self):
         self.conn.close()
 
